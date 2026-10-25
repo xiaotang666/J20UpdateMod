@@ -1,0 +1,94 @@
+plugins {
+    id 'java'
+    id 'net.neoforged.moddev' version '2.0.148'
+}
+
+version = '0.0.1'
+group = 'com.xiaotang.j20updatemod'
+
+base {
+    archivesName = 'j20UpdateMod-26.2-neoforge'
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(25)
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+def NEOFORGE_COORDS = 'net.neoforged:neoforge:26.2.0.93'
+
+neoForge {
+    version = '26.2.0.93'
+
+    runs {
+        client {
+            client()
+        }
+    }
+
+    mods {
+        j20updatemod {
+            sourceSet(sourceSets.main)
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 1) maven.neoforged.net 在当前网络被 DNS 污染 + SNI 阻断；
+//    ModDevGradle 自动注入的仓库 URL 一律改写到其 CDN77 镜像入口（内容同源）。
+// ---------------------------------------------------------------------------
+repositories.all { repo ->
+    if (repo instanceof MavenArtifactRepository) {
+        def u = repo.url.toString()
+        if (u.startsWith('https://maven.neoforged.net/')) {
+            repo.setUrl('https://1755624453.rsc.cdn77.org/' + u.substring('https://maven.neoforged.net/'.length()))
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 2) ModDevGradle 在 modDevCompileDependencies / modDevRuntimeDependencies 里
+//    同时声明：带 'neoforge-dependencies' 能力的依赖（选中 modDevApiElements）
+//    和一个无能力裸依赖（选中 universalJar）。NeoForge 26.x 的这两个变体
+//    usage 属性互斥（java-api vs java-runtime），Gradle 8.8 报
+//    "Multiple incompatible variants"。这里把裸依赖也改为请求
+//    'neoforge-dependencies' 能力，每个 bucket 只选中一个节点；
+//    universal jar（net.neoforged.neoforge.* 类）另行按隐式能力
+//    net.neoforged:neoforge 单独解析并挂到编译/运行类路径。
+// ---------------------------------------------------------------------------
+['modDevCompileDependencies', 'modDevRuntimeDependencies'].each { cfgName ->
+    configurations.named(cfgName).configure { cfg ->
+        cfg.withDependencies { deps ->
+            def plain = deps.findAll { it.name == 'neoforge' && it.group == 'net.neoforged' }
+            plain.each { deps.remove(it) }
+            deps.add(project.dependencies.create(NEOFORGE_COORDS) { d ->
+                d.capabilities { it.requireCapability('net.neoforged:neoforge-dependencies') }
+            })
+        }
+    }
+}
+
+def neoForgeUniversal = configurations.detachedConfiguration(project.dependencies.create(NEOFORGE_COORDS) { d ->
+    d.capabilities { it.requireCapability('net.neoforged:neoforge') }
+})
+
+sourceSets.main.compileClasspath += neoForgeUniversal
+sourceSets.main.runtimeClasspath += neoForgeUniversal
+
+tasks.named('jar', Jar) {
+    // 文件名遵循文档 1.3：j20UpdateMod-{mc_version}-{loader}.jar（版本号只在元数据里）
+    archiveVersion = ''
+    manifest {
+        attributes([
+                'Specification-Title'   : 'j20UpdateMod',
+                'Specification-Vendor'  : '小坣',
+                'Specification-Version' : '1',
+                'Implementation-Title'  : 'j20UpdateMod',
+                'Implementation-Version': project.version,
+                'Implementation-Vendor' : '小坣'
+        ])
+    }
+}

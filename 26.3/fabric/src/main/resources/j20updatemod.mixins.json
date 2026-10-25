@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "package": "com.xiaotang.j20updatemod.inject",
+  "compatibilityLevel": "JAVA_25",
+  "mixins": [
+    "PackRepositoryMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

@@ -1,0 +1,57 @@
+plugins {
+    id 'java'
+    id 'fabric-loom' version '1.7.4'
+}
+
+version = '0.0.1'
+group = 'com.xiaotang.j20updatemod'
+
+base {
+    archivesName = 'j20UpdateMod-1.20.1-fabric'
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(17)
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    minecraft 'com.mojang:minecraft:1.20.1'
+    // 官方（Mojang）映射：与 Forge / NeoForge 工程源码同名，跨加载器复用同一套 MC API 调用
+    mappings loom.officialMojangMappings()
+    modImplementation 'net.fabricmc:fabric-loader:0.15.11'
+}
+
+processResources {
+    inputs.property 'version', project.version
+    filesMatching('fabric.mod.json') {
+        expand 'version': project.version
+    }
+}
+
+tasks.named('jar', Jar) {
+    // 文件名遵循规范：j20UpdateMod-{mc_version}-{loader}.jar（版本号只在元数据里）
+    archiveVersion = ''
+    manifest {
+        attributes([
+                'Specification-Title'   : 'j20UpdateMod',
+                'Specification-Vendor'  : '小坣',
+                'Specification-Version' : '1',
+                'Implementation-Title'  : 'j20UpdateMod',
+                'Implementation-Version': project.version,
+                'Implementation-Vendor' : '小坣'
+        ])
+    }
+}
+
+// remapJar（发布产物）同样不带版本号后缀
+tasks.named('remapJar') {
+    archiveVersion = ''
+}

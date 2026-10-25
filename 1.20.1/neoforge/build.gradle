@@ -1,0 +1,50 @@
+plugins {
+    id 'java'
+    id 'net.minecraftforge.gradle' version '5.1.+'
+}
+
+version = '0.0.1'
+group = 'com.xiaotang.j20updatemod'
+
+base {
+    archivesName = 'j20UpdateMod-1.20.1-neoforge'
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(17)
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+repositories {
+    // NeoForge 1.20.1（net.neoforged:forge:1.20.1-47.1.x）的构件仓库。
+    // maven.neoforged.net 域名在本网络被 SNI 阻断，这里走其 CDN77 边缘直链（内容与官方一致），
+    // 并以 BMCLAPI 镜像兜底。
+    maven { url = 'https://1755624453.rsc.cdn77.org/releases' }
+    maven { url = 'https://bmclapi2.bangbang93.com/maven/' }
+}
+
+minecraft {
+    mappings channel: 'official', version: '1.20.1'
+}
+
+dependencies {
+    minecraft 'net.neoforged:forge:1.20.1-47.1.106'
+}
+
+tasks.named('jar', Jar) {
+    // 文件名遵循规范：j20UpdateMod-{mc_version}-{loader}.jar（版本号只在元数据里）
+    archiveVersion = ''
+    manifest {
+        attributes([
+                'Specification-Title'   : 'j20UpdateMod',
+                'Specification-Vendor'  : '小坣',
+                'Specification-Version' : '1',
+                'Implementation-Title'  : 'j20UpdateMod',
+                'Implementation-Version': project.version,
+                'Implementation-Vendor' : '小坣'
+        ])
+    }
+}

@@ -1,0 +1,57 @@
+plugins {
+    id 'fabric-loom' version '1.7.4'
+}
+
+version = '0.0.1'
+group = 'com.xiaotang.j20updatemod'
+
+base {
+    archivesName = 'j20UpdateMod-1.21.1-fabric'
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    minecraft 'com.mojang:minecraft:1.21.1'
+    mappings 'net.fabricmc:yarn:1.21.1+build.3:v2'
+    modImplementation 'net.fabricmc:fabric-loader:0.16.14'
+    modImplementation 'net.fabricmc.fabric-api:fabric-api:0.116.17+1.21.1'
+}
+
+loom {
+    mixin {
+        defaultRefmapName = 'j20updatemod-refmap.json'
+    }
+}
+
+tasks.named('jar', Jar) {
+    // 文件名遵循规范：j20UpdateMod-{mc_version}-{loader}.jar（版本号只在元数据里）
+    // 加 -dev 后缀与 remapJar 产物区分，避免两个任务写同一文件
+    archiveVersion = ''
+    archiveClassifier = 'dev'
+    manifest {
+        attributes([
+                'Specification-Title'   : 'j20UpdateMod',
+                'Specification-Vendor'  : '小坣',
+                'Specification-Version' : '1',
+                'Implementation-Title'  : 'j20UpdateMod',
+                'Implementation-Version': project.version,
+                'Implementation-Vendor' : '小坣'
+        ])
+    }
+}
+
+tasks.named('remapJar') {
+    // 发布 jar 名不含 mod 版本号：j20UpdateMod-1.21.1-fabric.jar
+    archiveVersion = ''
+}

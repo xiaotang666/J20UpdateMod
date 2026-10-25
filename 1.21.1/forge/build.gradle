@@ -1,0 +1,48 @@
+plugins {
+    id 'java'
+    id 'idea'
+    id 'eclipse'
+    id 'net.minecraftforge.gradle' version '6.0.54'
+}
+
+version = '0.0.1'
+group = 'com.xiaotang.j20updatemod'
+
+base {
+    archivesName = 'j20UpdateMod-1.21.1-forge'
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+}
+
+minecraft {
+    mappings channel: 'official', version: '1.21.1'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    minecraft 'net.minecraftforge:forge:1.21.1-52.1.20'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.named('jar', Jar) {
+    // 文件名遵循规范：j20UpdateMod-{mc_version}-{loader}.jar（版本号只在元数据里）
+    archiveVersion = ''
+    manifest {
+        attributes([
+                'Specification-Title'   : 'j20UpdateMod',
+                'Specification-Vendor'  : '小坣',
+                'Specification-Version' : '1',
+                'Implementation-Title'  : 'j20UpdateMod',
+                'Implementation-Version': project.version,
+                'Implementation-Vendor' : '小坣'
+        ])
+    }
+}

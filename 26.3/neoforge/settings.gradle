@@ -1,0 +1,18 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        maven { url = 'https://1755624453.rsc.cdn77.org/releases' }
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode = RepositoriesMode.PREFER_SETTINGS
+    repositories {
+        maven { url = 'https://1755624453.rsc.cdn77.org/releases' }
+        maven { url = 'https://1755624453.rsc.cdn77.org/mojang-meta' }
+        maven { url = 'https://libraries.minecraft.net' }
+        mavenCentral()
+    }
+}
+
+rootProject.name = 'j20UpdateMod'

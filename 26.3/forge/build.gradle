@@ -1,0 +1,45 @@
+plugins {
+    id 'java'
+    id 'net.minecraftforge.gradle' version '[7.0.17,8)'
+}
+
+version = '0.0.1'
+group = 'com.xiaotang.j20updatemod'
+
+base {
+    // 文件名遵循文档 1.3：j20UpdateMod-{mc_version}-{loader}.jar（版本号只在元数据里）
+    archivesName = 'j20UpdateMod-26.3-forge'
+}
+
+// Mojang 随 26.1+ 发布 Java 25
+java.toolchain.languageVersion = JavaLanguageVersion.of(25)
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+repositories {
+    minecraft.mavenizer(it) // In Kotlin, it = this
+    maven fg.forgeMaven
+    maven fg.minecraftLibsMaven
+    mavenCentral()
+}
+
+dependencies {
+    implementation minecraft.dependency('net.minecraftforge:forge:26.3-66.1.0')
+    annotationProcessor 'net.minecraftforge:eventbus-validator:7.0.6'
+}
+
+tasks.named('jar', Jar) {
+    archiveVersion = ''
+    manifest {
+        attributes([
+                'Specification-Title'   : 'j20UpdateMod',
+                'Specification-Vendor'  : '小坣',
+                'Specification-Version' : '1',
+                'Implementation-Title'  : 'j20UpdateMod',
+                'Implementation-Version': project.version,
+                'Implementation-Vendor' : '小坣'
+        ])
+    }
+}

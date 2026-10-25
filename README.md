@@ -1,5 +1,7 @@
 # j20UpdateMod（J20模组汉化）
 
+![AGPL-3.0 license](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)
+
 Minecraft 模组汉化自动更新模组。安装后启动游戏即自动下载并应用最新汉化资源包，无需手动更新。
 
 ## 功能特性
@@ -51,6 +53,6 @@ Minecraft 模组汉化自动更新模组。安装后启动游戏即自动下载�
 
 ## 协议与致谢
 
-- 本模组遵循 **CC BY-NC-SA 4.0** 协议，禁止商业用途；以编译好的 JAR 形式分发，不包含源代码
+- 本模组遵循 **AGPL-3.0** 协议
 - 汉化内容来自 [J20-Mcmodlanguage-Package](https://github.com/xiaotang666/J20-Mcmodlanguage-Package)（基于 [CFPAOrg/Minecraft-Mod-Language-Package](https://github.com/CFPAOrg/Minecraft-Mod-Language-Package) 改编）
 - 自动更新思路参考 [I18nUpdateMod3](https://github.com/CFPAOrg/I18nUpdateMod3)

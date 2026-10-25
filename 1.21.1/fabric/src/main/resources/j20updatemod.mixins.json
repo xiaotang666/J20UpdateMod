@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.xiaotang.j20updatemod.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "refmap": "j20updatemod-refmap.json",
+  "client": [
+    "ResourcePackManagerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

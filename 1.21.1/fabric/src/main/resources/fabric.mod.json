@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "j20updatemod",
+  "version": "0.0.1",
+  "name": "j20UpdateMod",
+  "description": "J20模组汉化自动更新模组。启动时自动从 GitHub Release / 国内镜像获取最新汉化资源包，MD5 校验后注入资源包列表顶部；可选部署 Vault Patcher 硬编码补丁。",
+  "authors": [
+    "小坣"
+  ],
+  "license": "AGPL-3.0",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.xiaotang.j20updatemod.J20UpdateMod"
+    ]
+  },
+  "mixins": [
+    "j20updatemod.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}

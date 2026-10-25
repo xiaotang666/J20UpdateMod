@@ -1,0 +1,28 @@
+modLoader = "javafml"
+loaderVersion = "[4,)"
+license = "AGPL-3.0"
+
+[[mods]]
+modId = "j20updatemod"
+version = "0.0.1"
+displayName = "j20UpdateMod"
+authors = "小坣"
+description = '''
+J20模组汉化自动更新模组。
+启动时自动从 GitHub Release / 国内镜像获取最新汉化资源包，
+MD5 校验后注入资源包列表顶部；可选部署 Vault Patcher 硬编码补丁。
+'''
+
+[[dependencies.j20updatemod]]
+modId = "neoforge"
+type = "required"
+versionRange = "[26.3,)"
+ordering = "NONE"
+side = "CLIENT"
+
+[[dependencies.j20updatemod]]
+modId = "minecraft"
+type = "required"
+versionRange = "[26.3,26.4)"
+ordering = "NONE"
+side = "CLIENT"
