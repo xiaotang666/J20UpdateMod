@@ -2,7 +2,7 @@ plugins {
     id 'fabric-loom' version '1.7.4'
 }
 
-version = '0.0.2'
+version = '0.0.4'
 group = 'com.xiaotang.j20updatemod'
 
 base {
@@ -37,7 +37,6 @@ loom {
 tasks.named('jar', Jar) {
     // 文件名遵循规范：j20UpdateMod-{mc_version}-{loader}.jar（版本号只在元数据里）
     // 加 -dev 后缀与 remapJar 产物区分，避免两个任务写同一文件
-    archiveVersion = ''
     archiveClassifier = 'dev'
     manifest {
         attributes([
@@ -53,5 +52,4 @@ tasks.named('jar', Jar) {
 
 tasks.named('remapJar') {
     // 发布 jar 名不含 mod 版本号：j20UpdateMod-1.21.1-fabric.jar
-    archiveVersion = ''
 }

@@ -3,7 +3,7 @@ plugins {
     id 'fabric-loom' version '1.7.4'
 }
 
-version = '0.0.2'
+version = '0.0.4'
 group = 'com.xiaotang.j20updatemod'
 
 base {
@@ -38,7 +38,6 @@ processResources {
 
 tasks.named('jar', Jar) {
     // 文件名遵循规范：j20UpdateMod-{mc_version}-{loader}.jar（版本号只在元数据里）
-    archiveVersion = ''
     manifest {
         attributes([
                 'Specification-Title'   : 'j20UpdateMod',
@@ -53,5 +52,4 @@ tasks.named('jar', Jar) {
 
 // remapJar（发布产物）同样不带版本号后缀
 tasks.named('remapJar') {
-    archiveVersion = ''
 }

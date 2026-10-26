@@ -1,4 +1,6 @@
-package com.xiaotang.j20updatemod.inject;
+package com.xiaotang.j20updatemod.mixin;
+
+import com.xiaotang.j20updatemod.inject.PackInjector;
 
 import net.minecraft.client.resources.ClientPackSource;
 import net.minecraft.server.packs.repository.PackRepository;

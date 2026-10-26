@@ -37,7 +37,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class J20UpdateMod {
 
     public static final String MODID = "j20updatemod";
-    public static final String VERSION = "0.0.2";
+    public static final String VERSION = "0.0.4";
     public static final String LOADER = "neoforge";
 
     private static final Logger LOGGER = LogManager.getLogger("j20UpdateMod");
@@ -149,8 +149,8 @@ public class J20UpdateMod {
     /** 检测 Vault Patcher 是否已安装。 */
     private static boolean isVpLoaded() {
         try {
-            return ModList.get() != null && ModList.get().isLoaded("vaultpatcher_asm");
-        } catch (Throwable t) {
+            return ModList.get().isLoaded("vaultpatcher");
+        } catch (Throwable ignored) {
             return false;
         }
     }

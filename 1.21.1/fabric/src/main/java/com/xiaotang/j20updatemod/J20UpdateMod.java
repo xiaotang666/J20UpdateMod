@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class J20UpdateMod implements ClientModInitializer {
 
     public static final String MODID = "j20updatemod";
-    public static final String VERSION = "0.0.2";
+    public static final String VERSION = "0.0.4";
     public static final String LOADER = "fabric";
 
     private static final Logger LOGGER = LogManager.getLogger("j20UpdateMod");
@@ -150,8 +150,8 @@ public class J20UpdateMod implements ClientModInitializer {
     /** 检测 Vault Patcher 是否已安装。 */
     private static boolean isVpLoaded() {
         try {
-            return FabricLoader.getInstance().isModLoaded("vaultpatcher_asm");
-        } catch (Throwable t) {
+            return FabricLoader.getInstance().isModLoaded("vaultpatcher");
+        } catch (Throwable ignored) {
             return false;
         }
     }

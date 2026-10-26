@@ -2,6 +2,22 @@
 
 本项目遵循语义化迭代版本号。
 
+## 0.0.4 — 2026-10-26
+
+### 修复
+
+- **修复 Vault Patcher 安装检测失效**：检测用的 `vaultpatcher_asm` 实为 VP 的 Java 包名而非 mod ID，导致已安装 VP 仍被提示未安装且模块注册被跳过；检测改用真实 mod ID `vaultpatcher`
+
+## 0.0.3 — 2026-10-26
+
+### 修复
+
+- **修复 Fabric（26.1.2 / 26.2 / 26.3）启动崩溃**：Mixin 包内混放普通类导致 `IllegalClassLoadError`（PackInjector 无法加载，游戏初始化阶段崩溃），mixin 类已移入独立包
+
+### 变更
+
+- jar 文件名后缀加 mod 版本号（如 `j20UpdateMod-26.2-fabric-0.0.3.jar`），方便区分版本
+
 ## 0.0.2 — 2026-10-25
 
 ### 变更

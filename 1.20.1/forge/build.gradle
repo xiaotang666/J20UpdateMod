@@ -3,7 +3,7 @@ plugins {
     id 'net.minecraftforge.gradle' version '5.1.+'
 }
 
-version = '0.0.2'
+version = '0.0.4'
 group = 'com.xiaotang.j20updatemod'
 
 base {
@@ -28,7 +28,6 @@ dependencies {
 
 tasks.named('jar', Jar) {
     // 文件名遵循规范：j20UpdateMod-{mc_version}-{loader}.jar（版本号只在元数据里）
-    archiveVersion = ''
     manifest {
         attributes([
                 'Specification-Title'   : 'j20UpdateMod',

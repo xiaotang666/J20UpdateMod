@@ -20,7 +20,9 @@ cd 'C:/Hermes/Project/MC Mod/j20UpdateMod/1.21.1/neoforge'   # 每个目标工�
 
 多目标布局：`j20UpdateMod/<MC版本>/<loader>/` 各为自包含 gradle 工程（核心纯 Java 代码复制自 1.21.1/neoforge，独立维护）；当前覆盖 1.20.1 / 1.21.1 / 26.1.2 / 26.2 / 26.3 × forge / neoforge / fabric。
 
-产物：`build/libs/j20UpdateMod-1.21.1-neoforge.jar`。版本目录规范：构建后复制到 `1.21.1/发布/`（放最新打包好的 mod），被替换的旧 jar 改带版本号文件名移入 `1.21.1/旧版本/`（如 `j20UpdateMod-1.21.1-neoforge-v0.0.1.jar`）。
+产物：`build/libs/j20UpdateMod-{MC版本}-{loader}-{mod版本}.jar`。**jar 命名规范（用户定，自下个推送起生效）：文件名后缀加 mod 版本号**，如 `j20UpdateMod-1.21.1-neoforge-0.0.3.jar`（v0.0.2 及以前的 Release 资产无版本号后缀，勿改历史资产）。实现：各工程 build.gradle 去掉 `archiveVersion = ''`，让 Gradle 自动拼 `-<version>`，与版本同步 4 处一并改。
+版本目录规范：构建后复制到 `<MC版本>/发布/`（放最新打包好的 mod），被替换的旧 jar 移入 `<MC版本>/旧版本/`。
+⚠️ 改命名的同一次推送必须同步更新根 README 与各版本 README 的下载表（文件名必须与 Release 资产名一致），并换用新的 source zip 名（`j20UpdateMod-vX.Y.Z-source.zip` 不变）。
 
 ## 版本号同步（4 处）
 

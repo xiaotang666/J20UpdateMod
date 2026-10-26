@@ -8,6 +8,7 @@ import com.xiaotang.j20updatemod.vp.VPModuleLoader;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.zip.ZipEntry;
@@ -29,10 +30,27 @@ public class ChainTest {
         }
     }
 
+    static void deleteRecursively(Path p) throws IOException {
+        if (!Files.exists(p)) {
+            return;
+        }
+        try (java.util.stream.Stream<Path> walk = Files.walk(p)) {
+            walk.sorted(java.util.Comparator.reverseOrder()).forEach(f -> {
+                try {
+                    Files.delete(f);
+                } catch (IOException ignored) {
+                }
+            });
+        }
+    }
+
     public static void main(String[] args) throws Exception {
         Path base = Path.of("C:/Users/Administrator/AppData/Local/hermes/cache/scratch/j20test");
         Path cacheDir = base.resolve("j20update-cache");
         Path gameDir = base.resolve("game");
+        // 清场：固定目录会被上一次运行的缓存/部署残留污染（空包容错场景曾因此误报）
+        deleteRecursively(cacheDir);
+        deleteRecursively(gameDir);
         Files.createDirectories(cacheDir);
         Files.createDirectories(gameDir);
 
@@ -84,13 +102,36 @@ public class ChainTest {
         check("损坏缓存被检测并重新下载", MD5Util.matches(pack.md5, md5After), "修复后 md5=" + md5After);
         check("无 .part 残留", !Files.exists(cacheDir.resolve(pack.assetName + ".part")), "");
 
-        // ---- 6. VP：真实空包（汉化库当前产物）→ 应识别为空包且不报错 ----
+        // ---- 6. VP：真实产物部署（汉化库现含真实模块） ----
         VPModuleLoader.Result vp1 = VPModuleLoader.deployIfNeeded(true, true, gameDir, cacheDir,
                 manifest, "1.21", manifest.latest.version, cnFirst);
-        check("VP 空包容错（enabled=true）", vp1.enabled() && vp1.emptyPackage() && !vp1.deployed(), vp1.toString());
+        check("VP 真实包部署（汉化库当前产物）", vp1.enabled() && vp1.deployed() && !vp1.moduleNames().isEmpty(),
+                vp1.toString());
         VPModuleLoader.Result vpOff = VPModuleLoader.deployIfNeeded(false, true, gameDir, cacheDir,
                 manifest, "1.21", manifest.latest.version, cnFirst);
         check("enableHardcodedPatch=false 完全跳过", !vpOff.enabled() && !vpOff.deployed(), vpOff.toString());
+
+        // ---- 6b. VP：构造空包（无模块条目）→ 识别为空包且不报错 ----
+        Path emptyZip = cacheDir.resolve("vp-empty-test.zip");
+        try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(emptyZip))) {
+            zos.putNextEntry(new ZipEntry("vaultpatcher/modules/"));
+            zos.closeEntry();
+        }
+        Manifest emptyManifest = new Manifest();
+        emptyManifest.schemaVersion = 1;
+        emptyManifest.latest = new Manifest.Latest();
+        emptyManifest.latest.version = manifest.latest.version;
+        Manifest.VpPackEntry emptyVp = new Manifest.VpPackEntry();
+        emptyVp.mcVersion = "1.21";
+        emptyVp.assetName = "vp-empty-test.zip";
+        emptyVp.releaseUrl = "https://example.invalid/vp-empty-test.zip";
+        emptyVp.md5 = MD5Util.fileMd5Hex(emptyZip);
+        emptyManifest.latest.vpPackages = List.of(emptyVp);
+        emptyManifest.latest.packages = manifest.latest.packages;
+        VPModuleLoader.Result vpEmpty = VPModuleLoader.deployIfNeeded(true, true, gameDir, cacheDir,
+                emptyManifest, "1.21", emptyManifest.latest.version, cnFirst);
+        check("VP 空包容错（enabled=true）", vpEmpty.enabled() && vpEmpty.emptyPackage() && !vpEmpty.deployed(),
+                vpEmpty.toString());
 
         // ---- 7. VP：构造真实模块包 → 解压到游戏根目录 + 更新 VP 配置 ----
         Path gameDir2 = base.resolve("game2");

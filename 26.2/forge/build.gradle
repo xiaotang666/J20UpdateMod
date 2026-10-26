@@ -3,7 +3,7 @@ plugins {
     id 'net.minecraftforge.gradle' version '[7.0.17,8)'
 }
 
-version = '0.0.2'
+version = '0.0.4'
 group = 'com.xiaotang.j20updatemod'
 
 base {
@@ -31,7 +31,6 @@ dependencies {
 }
 
 tasks.named('jar', Jar) {
-    archiveVersion = ''
     manifest {
         attributes([
                 'Specification-Title'   : 'j20UpdateMod',
