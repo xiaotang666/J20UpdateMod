@@ -18,11 +18,11 @@ Minecraft 模组汉化自动更新模组。安装后启动游戏即自动下载�
 
 | Minecraft 版本 | Forge | NeoForge | Fabric |
 | --- | --- | --- | --- |
-| 1.20.x | `j20UpdateMod-1.20.1-forge-0.0.4.jar` | `j20UpdateMod-1.20.1-neoforge-0.0.4.jar` | `j20UpdateMod-1.20.1-fabric-0.0.4.jar` |
-| 1.21.x | `j20UpdateMod-1.21.1-forge-0.0.4.jar` | `j20UpdateMod-1.21.1-neoforge-0.0.4.jar` | `j20UpdateMod-1.21.1-fabric-0.0.4.jar` |
-| 26.1.x | `j20UpdateMod-26.1.2-forge-0.0.4.jar` | `j20UpdateMod-26.1.2-neoforge-0.0.4.jar` | `j20UpdateMod-26.1.2-fabric-0.0.4.jar` |
-| 26.2 | `j20UpdateMod-26.2-forge-0.0.4.jar` | `j20UpdateMod-26.2-neoforge-0.0.4.jar` | `j20UpdateMod-26.2-fabric-0.0.4.jar` |
-| 26.3 | `j20UpdateMod-26.3-forge-0.0.4.jar` | `j20UpdateMod-26.3-neoforge-0.0.4.jar` | `j20UpdateMod-26.3-fabric-0.0.4.jar` |
+| 1.20.x | `j20UpdateMod-1.20.1-forge-0.1.0.jar` | `j20UpdateMod-1.20.1-neoforge-0.1.0.jar` | `j20UpdateMod-1.20.1-fabric-0.1.0.jar` |
+| 1.21.x | `j20UpdateMod-1.21.1-forge-0.1.0.jar` | `j20UpdateMod-1.21.1-neoforge-0.1.0.jar` | `j20UpdateMod-1.21.1-fabric-0.1.0.jar` |
+| 26.1.x | `j20UpdateMod-26.1.2-forge-0.1.0.jar` | `j20UpdateMod-26.1.2-neoforge-0.1.0.jar` | `j20UpdateMod-26.1.2-fabric-0.1.0.jar` |
+| 26.2 | `j20UpdateMod-26.2-forge-0.1.0.jar` | `j20UpdateMod-26.2-neoforge-0.1.0.jar` | `j20UpdateMod-26.2-fabric-0.1.0.jar` |
+| 26.3 | `j20UpdateMod-26.3-forge-0.1.0.jar` | `j20UpdateMod-26.3-neoforge-0.1.0.jar` | `j20UpdateMod-26.3-fabric-0.1.0.jar` |
 
 汉化资源包按版本组共享（如 1.20.x 系列共用同一份汉化内容），模组 JAR 按 MC 具体版本与加载器区分。
 

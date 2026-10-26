@@ -3,7 +3,6 @@
   "package": "com.xiaotang.j20updatemod.mixin",
   "compatibilityLevel": "JAVA_17",
   "client": [
-    "PackRepositoryMixin",
     "ClientPacketListenerMixin"
   ],
   "injectors": {

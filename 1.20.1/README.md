@@ -13,9 +13,9 @@
 
 | 文件 | 加载器 | 要求 |
 | --- | --- | --- |
-| `j20UpdateMod-1.20.1-forge-0.0.4.jar` | Minecraft Forge | Forge 47.x |
-| `j20UpdateMod-1.20.1-neoforge-0.0.4.jar` | NeoForge | NeoForge 1.20.1（47.1.x） |
-| `j20UpdateMod-1.20.1-fabric-0.0.4.jar` | Fabric | Fabric Loader 0.14 及以上 |
+| `j20UpdateMod-1.20.1-forge-0.1.0.jar` | Minecraft Forge | Forge 47.x |
+| `j20UpdateMod-1.20.1-neoforge-0.1.0.jar` | NeoForge | NeoForge 1.20.1（47.1.x） |
+| `j20UpdateMod-1.20.1-fabric-0.1.0.jar` | Fabric | Fabric Loader 0.14 及以上 |
 
 ## 安装
 

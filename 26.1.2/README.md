@@ -4,9 +4,9 @@
 
 | 加载器 | 文件 |
 | --- | --- |
-| NeoForge | `j20UpdateMod-26.1.2-neoforge-0.0.4.jar` |
-| Forge | `j20UpdateMod-26.1.2-forge-0.0.4.jar` |
-| Fabric | `j20UpdateMod-26.1.2-fabric-0.0.4.jar` |
+| NeoForge | `j20UpdateMod-26.1.2-neoforge-0.1.0.jar` |
+| Forge | `j20UpdateMod-26.1.2-forge-0.1.0.jar` |
+| Fabric | `j20UpdateMod-26.1.2-fabric-0.1.0.jar` |
 
 本构建覆盖 **26.1 版本组的全部小版本**（26.1.x），无需按小版本另行下载。
 

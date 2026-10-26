@@ -6,9 +6,9 @@ import com.xiaotang.j20updatemod.download.ManifestFetcher;
 import com.xiaotang.j20updatemod.download.MirrorSelector;
 import com.xiaotang.j20updatemod.download.PackDownloader;
 import com.xiaotang.j20updatemod.download.Sources;
-import com.xiaotang.j20updatemod.inject.PackInjector;
 import com.xiaotang.j20updatemod.lang.LanguageDetector;
 import com.xiaotang.j20updatemod.util.GameDirs;
+import com.xiaotang.j20updatemod.util.OptionsSelector;
 import com.xiaotang.j20updatemod.vp.VPModuleLoader;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
@@ -18,6 +18,9 @@ import net.minecraft.network.chat.Component;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.IOException;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -28,12 +31,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * j20UpdateMod（J20模组汉化）Fabric 版主入口。
  * 启动时后台执行：语言检测 → 镜像源选择 → manifest 获取 → 资源包下载/MD5 校验 → VP 模块部署；
- * PackRepository.reload() 时（PackRepositoryMixin）等待更新完成并把汉化包注入资源包列表顶部。
+ * PackRepository.reload() 时（PackRepositoryMixin）等待更新完成并把汉化包发布到 resourcepacks 文件夹。
  */
 public class J20UpdateMod implements ClientModInitializer {
 
     public static final String MODID = "j20updatemod";
-    public static final String VERSION = "0.0.4";
+    public static final String VERSION = "0.1.0";
     public static final String LOADER = "fabric";
 
     private static final Logger LOGGER = LogManager.getLogger("j20UpdateMod");
@@ -101,6 +104,10 @@ public class J20UpdateMod implements ClientModInitializer {
 
             PackDownloader.Downloaded downloaded =
                     PackDownloader.ensureResourcePack(cacheDir, pack, manifest.latest.version, ordered);
+
+            Published published = publishToResourcepacks(downloaded.file(), gameDir, mcGroup);
+            LOGGER.info("[j20] 资源包已发布到 resourcepacks 文件夹: {}", published.file().getFileName());
+            OptionsSelector.autoSelectOnce(gameDir, "file/" + published.file().getFileName(), published.firstPublish());
 
             boolean vpLoaded = isVpLoaded();
             VPModuleLoader.Result vpResult = VPModuleLoader.deployIfNeeded(
@@ -177,5 +184,29 @@ public class J20UpdateMod implements ClientModInitializer {
             return parts[0] + "." + parts[1];
         }
         return mcVersion;
+    }
+
+    /** 发布结果：落盘路径 + 是否首次发布（新安装）。 */
+    private record Published(Path file, boolean firstPublish) {
+    }
+
+    /**
+     * 把资源包发布到 resourcepacks/ 文件夹（对齐 i18n 行为：实体文件可见、同名原子覆盖）。
+     * 返回落盘路径与是否首次发布；不再注入资源包列表（普通资源包，用户自行排序/开关）。
+     */
+    private static Published publishToResourcepacks(Path cachedZip, Path gameDir, String mcGroup) throws IOException {
+        Path dir = gameDir.resolve("resourcepacks");
+        Files.createDirectories(dir);
+        String name = "j20-lang-" + mcGroup + "-" + LOADER + ".zip";
+        Path target = dir.resolve(name);
+        boolean firstPublish = !Files.exists(target);
+        Path tmp = dir.resolve(name + ".j20tmp");
+        Files.copy(cachedZip, tmp, StandardCopyOption.REPLACE_EXISTING);
+        try {
+            Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+        } catch (AtomicMoveNotSupportedException e) {
+            Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING);
+        }
+        return new Published(target, firstPublish);
     }
 }
