@@ -23,7 +23,7 @@ public class J20Config {
 
     /** 是否启用硬编码补丁（Vault Patcher 模块部署）。 */
     @SerializedName("enableHardcodedPatch")
-    public boolean enableHardcodedPatch = false;
+    public boolean enableHardcodedPatch = true;
 
     /** VP 未安装时是否提示用户安装。 */
     @SerializedName("showVPInstallReminder")

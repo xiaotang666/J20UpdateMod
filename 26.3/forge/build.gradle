@@ -3,7 +3,7 @@ plugins {
     id 'net.minecraftforge.gradle' version '[7.0.17,8)'
 }
 
-version = '0.0.1'
+version = '0.0.2'
 group = 'com.xiaotang.j20updatemod'
 
 base {

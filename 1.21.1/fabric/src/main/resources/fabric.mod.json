@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "j20updatemod",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "name": "j20UpdateMod",
   "description": "J20模组汉化自动更新模组。启动时自动从 GitHub Release / 国内镜像获取最新汉化资源包，MD5 校验后注入资源包列表顶部；可选部署 Vault Patcher 硬编码补丁。",
   "authors": [

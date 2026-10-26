@@ -20,12 +20,12 @@
 
 | 字段 | 类型 | 默认值 | 说明 |
 | --- | --- | --- | --- |
-| `enableHardcodedPatch` | boolean | `false` | 是否启用硬编码补丁（Vault Patcher 模块自动部署） |
+| `enableHardcodedPatch` | boolean | `true` | 是否启用硬编码补丁（Vault Patcher 模块自动部署） |
 | `showVPInstallReminder` | boolean | `true` | 启用补丁但未安装 Vault Patcher 时是否提示 |
 
 缓存目录：`.minecraft/j20update-cache/`（存放资源包与版本清单缓存，可随时删除，删除后重新下载）。
 
-启用硬编码补丁需要另行安装 [Vault Patcher](https://www.mcmod.cn/class/8765.html) 模组；未安装时游戏内会提示。
+硬编码补丁默认开启，需另行安装 [Vault Patcher](https://www.mcmod.cn/class/8765.html) 模组才会实际生效；未安装时游戏内会提示安装。
 
 ## 协议与致谢
 
