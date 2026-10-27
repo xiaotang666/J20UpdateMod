@@ -40,6 +40,9 @@ public final class ManifestFetcher {
         IOException lastError = null;
 
         for (Sources.Source source : ordered) {
+            if (source.manifestUrl == null || source.manifestUrl.isBlank()) {
+                continue; // 仅提供资产加速的源（无清单地址），跳过
+            }
             try {
                 LOGGER.info("[j20] 尝试获取版本清单: {} ({})", source.name, source.manifestUrl);
                 byte[] body = HttpUtil.get(source.manifestUrl, FETCH_TIMEOUT_MS);

@@ -1,14 +1,6 @@
 {
   "sources": [
     {
-      "id": "mirror-ghproxy",
-      "name": "ghproxy 加速",
-      "region": "cn",
-      "priority": 1,
-      "manifest_url": "https://ghproxy.net/https://raw.githubusercontent.com/xiaotang666/J20-Mcmodlanguage-Package/main/manifest.json",
-      "asset_url_template": "https://ghproxy.net/{release_url}"
-    },
-    {
       "id": "github-release",
       "name": "GitHub Release",
       "region": "global",
@@ -17,10 +9,25 @@
       "asset_url_template": "{release_url}"
     },
     {
+      "id": "mirror-ghproxy",
+      "name": "ghproxy 加速",
+      "region": "cn",
+      "priority": 1,
+      "manifest_url": "https://ghproxy.net/https://raw.githubusercontent.com/xiaotang666/J20-Mcmodlanguage-Package/main/manifest.json",
+      "asset_url_template": "https://ghproxy.net/{release_url}"
+    },
+    {
+      "id": "mirror-ghproxy-com",
+      "name": "gh-proxy.com 加速",
+      "region": "cn",
+      "priority": 2,
+      "asset_url_template": "https://gh-proxy.com/{release_url}"
+    },
+    {
       "id": "mirror-jsdelivr",
       "name": "jsDelivr 清单镜像",
       "region": "global",
-      "priority": 3,
+      "priority": 4,
       "manifest_url": "https://cdn.jsdelivr.net/gh/xiaotang666/J20-Mcmodlanguage-Package@main/manifest.json",
       "_note": "jsDelivr 只镜像仓库内文件（manifest.json），不镜像 Release 资产，故无 asset_url_template；渠道清单以汉化库 sources.example.json 为准同步"
     }
