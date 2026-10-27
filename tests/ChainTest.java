@@ -103,6 +103,17 @@ public class ChainTest {
         check("损坏缓存被检测并重新下载", MD5Util.matches(pack.md5, md5After), "修复后 md5=" + md5After);
         check("无 .part 残留", !Files.exists(cacheDir.resolve(pack.assetName + ".part")), "");
 
+        // ---- 5b. 清单版本防护：缓存新于在线来源 → 用缓存（防 jsDelivr 等 CDN 旧清单顶掉新缓存）----
+        Path mf = cacheDir.resolve("manifest.json");
+        String originalMf = Files.readString(mf, StandardCharsets.UTF_8);
+        String bumped = originalMf
+                .replaceFirst("\"version\"\\s*:\\s*\"[^\"]+\"", "\"version\": \"2099.01.01-001\"");
+        Files.writeString(mf, bumped, StandardCharsets.UTF_8);
+        Manifest newerCache = ManifestFetcher.fetch(cacheDir, cnFirst, "1.21", "neoforge");
+        check("缓存版本新于来源 → 用缓存（防旧 CDN 清单）", "2099.01.01-001".equals(newerCache.latest.version),
+                newerCache.latest.version);
+        Files.writeString(mf, originalMf, StandardCharsets.UTF_8);
+
         // ---- 6. VP：真实产物部署（汉化库现含真实模块） ----
         VPModuleLoader.Result vp1 = VPModuleLoader.deployIfNeeded(true, true, gameDir, cacheDir,
                 manifest, "1.21", manifest.latest.version, cnFirst);

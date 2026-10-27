@@ -21,7 +21,8 @@
       "name": "gh-proxy.com 加速",
       "region": "cn",
       "priority": 2,
-      "asset_url_template": "https://gh-proxy.com/{release_url}"
+      "asset_url_template": "https://gh-proxy.com/{release_url}",
+      "manifest_url": "https://gh-proxy.com/https://raw.githubusercontent.com/xiaotang666/J20-Mcmodlanguage-Package/main/manifest.json"
     },
     {
       "id": "mirror-jsdelivr",

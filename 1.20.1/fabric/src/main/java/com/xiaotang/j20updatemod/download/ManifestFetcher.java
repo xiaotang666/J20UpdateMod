@@ -38,6 +38,8 @@ public final class ManifestFetcher {
     public static Manifest fetch(Path cacheDir, List<Sources.Source> ordered, String needMcGroup, String needLoader)
             throws IOException {
         IOException lastError = null;
+        Manifest cached = readCachedManifest(cacheDir, needMcGroup, needLoader);
+        String cachedVersion = cached == null ? null : cached.latest.version;
 
         for (Sources.Source source : ordered) {
             if (source.manifestUrl == null || source.manifestUrl.isBlank()) {
@@ -47,6 +49,12 @@ public final class ManifestFetcher {
                 LOGGER.info("[j20] 尝试获取版本清单: {} ({})", source.name, source.manifestUrl);
                 byte[] body = HttpUtil.get(source.manifestUrl, FETCH_TIMEOUT_MS);
                 Manifest manifest = parse(body, needMcGroup, needLoader);
+                if (cachedVersion != null && manifest.latest.version.compareTo(cachedVersion) < 0) {
+                    // CDN 镜像可能滞留旧清单：不许旧版本顶掉本地更新的缓存，继续试下一个源
+                    LOGGER.warn("[j20] 源 {} 返回旧版本 {}（本地缓存为 {}），跳过该源",
+                            source.name, manifest.latest.version, cachedVersion);
+                    continue;
+                }
                 cacheManifest(cacheDir, body);
                 LOGGER.info("[j20] 版本清单获取成功（{}），最新版本 {}", source.name, manifest.latest.version);
                 return manifest;
@@ -56,9 +64,8 @@ public final class ManifestFetcher {
             }
         }
 
-        Manifest cached = readCachedManifest(cacheDir, needMcGroup, needLoader);
         if (cached != null) {
-            LOGGER.warn("[j20] 所有源均失败，使用缓存清单版本 {}（最后错误: {}）",
+            LOGGER.warn("[j20] 所有源均失败或返回旧版本，使用缓存清单版本 {}（最后错误: {}）",
                     cached.latest.version, lastError == null ? "无" : lastError.toString());
             return cached;
         }
