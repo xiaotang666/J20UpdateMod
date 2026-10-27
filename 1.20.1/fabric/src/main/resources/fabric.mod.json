@@ -12,6 +12,9 @@
   "entrypoints": {
     "client": [
       "com.xiaotang.j20updatemod.J20UpdateMod"
+    ],
+    "preLaunch": [
+      "com.xiaotang.j20updatemod.bootstrap.PreLaunchBootstrap"
     ]
   },
   "mixins": [

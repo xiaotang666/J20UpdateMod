@@ -51,6 +51,7 @@ public class ChainTest {
         // 清场：固定目录会被上一次运行的缓存/部署残留污染（空包容错场景曾因此误报）
         deleteRecursively(cacheDir);
         deleteRecursively(gameDir);
+        deleteRecursively(base.resolve("game2"));
         Files.createDirectories(cacheDir);
         Files.createDirectories(gameDir);
 
@@ -167,6 +168,10 @@ public class ChainTest {
         VPModuleLoader.Result vp2 = VPModuleLoader.deployIfNeeded(true, true, gameDir2, cacheDir,
                 fakeManifest, "1.21", fakeManifest.latest.version, cnFirst);
         check("VP 模块解压部署", vp2.deployed() && vp2.moduleNames().contains("testmod"), vp2.moduleNames().toString());
+        check("VP 首次部署有变更（changed=true）", vp2.changed(), vp2.toString());
+        VPModuleLoader.Result vp2b = VPModuleLoader.deployIfNeeded(true, true, gameDir2, cacheDir,
+                fakeManifest, "1.21", fakeManifest.latest.version, cnFirst);
+        check("VP 重复部署幂等（changed=false）", !vp2b.changed(), vp2b.toString());
         check("模块文件就位于 .minecraft/vaultpatcher/modules/",
                 Files.exists(gameDir2.resolve("vaultpatcher/modules/testmod.json")), "");
         check("路径穿越条目被拦截", !Files.exists(gameDir2.resolve("escape.txt"))

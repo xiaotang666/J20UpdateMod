@@ -52,10 +52,18 @@ public class J20UpdateMod {
     private static final CountDownLatch UPDATE_DONE = new CountDownLatch(1);
     private static volatile UpdateOutcome outcome;
     private static final AtomicBoolean VP_REMINDER_PENDING = new AtomicBoolean(false);
+    /** 启动早期同步等待预算（秒）：首次安装限时等下载（A 方案），超时转后台。 */
+    private static final long SYNC_BUDGET_SECONDS = 30;
+    private static final AtomicBoolean WORKER_STARTED = new AtomicBoolean(false);
+    private static final AtomicBoolean EARLY_CHECKED = new AtomicBoolean(false);
+    private static final AtomicBoolean EARLY_DEPLOY_DONE = new AtomicBoolean(false);
+    private static final AtomicBoolean RESTART_REMINDER_PENDING = new AtomicBoolean(false);
 
     private static final String VP_REMINDER_TEXT =
             "§e[j20] §f已启用硬编码补丁，但未检测到 §bVault Patcher§f。"
                     + "请安装 Vault Patcher 模组并重启游戏，硬编码文本汉化才会生效。";
+    private static final String RESTART_REMINDER_TEXT =
+            "j20：最新汉化已就位，但本次启动的翻译不会完全生效，请重启一次游戏使其生效。";
 
     /** 更新流程结果。 */
     public record UpdateOutcome(Path packZip, String packVersion, String langCode, String manifestVersion) {
@@ -64,9 +72,7 @@ public class J20UpdateMod {
     public J20UpdateMod(FMLJavaModLoadingContext context) {
         ClientPlayerNetworkEvent.LoggingIn.BUS.addListener(J20UpdateMod::onPlayerLogin);
 
-        Thread worker = new Thread(J20UpdateMod::runUpdate, "j20update-bootstrap");
-        worker.setDaemon(true);
-        worker.start();
+        runEarlyCheck();
 
         LOGGER.info("[j20] j20UpdateMod {} 已加载（模组 ID: {}，目标 MC {} / {}）",
                 VERSION, MODID, BUILD_TARGET_MC, LOADER);
@@ -80,6 +86,83 @@ public class J20UpdateMod {
             Thread.currentThread().interrupt();
         }
         return outcome;
+    }
+
+    /** 启动早期检查（preLaunch/模组构造期）：首次安装限时同步等下载（A），否则异步（B）。 */
+    public static void runEarlyCheck() {
+        startUpdateWorker();
+        if (EARLY_CHECKED.getAndSet(true)) {
+            return;
+        }
+        Path gameDir = null;
+        try {
+            gameDir = GameDirs.resolveGameDir();
+        } catch (Throwable ignored) {
+        }
+        if (gameDir != null && hasLocalPackState(gameDir)) {
+            LOGGER.info("[j20] 本地已有汉化资源包，后台检查更新（不阻塞启动）");
+            return;
+        }
+        LOGGER.info("[j20] 首次安装：同步等待汉化下载部署（最长 {} 秒，日志有进度）", SYNC_BUDGET_SECONDS);
+        long start = System.currentTimeMillis();
+        long deadline = start + SYNC_BUDGET_SECONDS * 1000L;
+        try {
+            while (!UPDATE_DONE.await(5, TimeUnit.SECONDS)) {
+                if (System.currentTimeMillis() >= deadline) {
+                    LOGGER.warn("[j20] 同步等待超时（{}s），转后台继续下载，完成后提示重启生效", SYNC_BUDGET_SECONDS);
+                    return;
+                }
+                LOGGER.info("[j20] 正在准备汉化…已等待 {}s / {}s（首次启动需下载，请稍候）",
+                        (System.currentTimeMillis() - start) / 1000, SYNC_BUDGET_SECONDS);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        EARLY_DEPLOY_DONE.set(true);
+        LOGGER.info("[j20] 汉化已在启动早期就位（耗时 {}s），本次启动生效",
+                (System.currentTimeMillis() - start) / 1000);
+    }
+
+    /** 幂等启动更新线程。 */
+    public static void startUpdateWorker() {
+        if (WORKER_STARTED.getAndSet(true)) {
+            return;
+        }
+        Thread worker = new Thread(J20UpdateMod::runUpdate, "j20update-bootstrap");
+        worker.setDaemon(true);
+        worker.start();
+    }
+
+    /** 本地是否已有汉化资源包与缓存（决定启动是否需要同步等待）。 */
+    private static boolean hasLocalPackState(Path gameDir) {
+        try (java.util.stream.Stream<Path> a = Files.list(gameDir.resolve("resourcepacks"));
+             java.util.stream.Stream<Path> b = Files.list(gameDir.resolve("j20update-cache"))) {
+            boolean pack = a.anyMatch(p -> {
+                String n = p.getFileName().toString();
+                return n.startsWith("j20-lang-") && n.endsWith(".zip");
+            });
+            boolean cache = b.anyMatch(p -> {
+                String n = p.getFileName().toString();
+                return n.startsWith("pack-") && n.endsWith(".zip");
+            });
+            return pack && cache;
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /** 本次启动 VP 是否已初始化（VaultPatcher.mcPath 在其 init 入口赋值；不确定时按已初始化处理）。 */
+    private static boolean isVpInitializedThisLaunch() {
+        if (!isVpLoaded()) {
+            return false;
+        }
+        try {
+            Class<?> c = Class.forName("me.fengming.vaultpatcher_asm.VaultPatcher");
+            java.lang.reflect.Field f = c.getField("mcPath");
+            return f.get(null) != null;
+        } catch (Throwable t) {
+            return true;
+        }
     }
 
     /** 更新流程主体（后台线程）。 */
@@ -122,6 +205,13 @@ public class J20UpdateMod {
             }
 
             outcome = new UpdateOutcome(downloaded.file(), manifest.latest.version, langCode, manifest.latest.version);
+            boolean needsRestart = (published.changed() && !EARLY_DEPLOY_DONE.get())
+                    || (vpResult.changed() && isVpInitializedThisLaunch());
+            if (needsRestart) {
+                RESTART_REMINDER_PENDING.set(true);
+                LOGGER.info("[j20] 汉化已部署，但本次启动不会完全生效（packChanged={} vpChanged={} vpInitialized={}），进服后提示重启",
+                        published.changed(), vpResult.changed(), isVpInitializedThisLaunch());
+            }
             LOGGER.info("[j20] 汉化更新流程完成：资源包版本 {}{}", manifest.latest.version,
                     downloaded.fromCache() ? "（缓存）" : "（本次下载）");
         } catch (Throwable t) {
@@ -146,6 +236,20 @@ public class J20UpdateMod {
                 }
             } catch (Throwable t) {
                 LOGGER.warn("[j20] VP 安装提醒发送失败: {}", t.toString());
+            }
+        }
+        onPlayerLoginRestart(event);
+    }
+
+    /** 重启提醒（由 VP 提醒方法尾部调用，仅一次）。 */
+    private static void onPlayerLoginRestart(ClientPlayerNetworkEvent.LoggingIn event) {
+        if (RESTART_REMINDER_PENDING.getAndSet(false)) {
+            try {
+                if (event.getPlayer() != null) {
+                    event.getPlayer().sendSystemMessage(Component.literal(RESTART_REMINDER_TEXT));
+                }
+            } catch (Throwable t) {
+                LOGGER.warn("[j20] 重启提醒发送失败: {}", t.toString());
             }
         }
     }
@@ -190,13 +294,13 @@ public class J20UpdateMod {
         return mcVersion;
     }
 
-    /** 发布结果：落盘路径 + 是否首次发布（新安装）。 */
-    private record Published(Path file, boolean firstPublish) {
+    /** 发布结果：落盘路径 + 是否首次发布（新安装）+ 内容是否变化。 */
+    private record Published(Path file, boolean firstPublish, boolean changed) {
     }
 
     /**
      * 把资源包发布到 resourcepacks/ 文件夹（对齐 i18n 行为：实体文件可见、同名原子覆盖）。
-     * 返回落盘路径与是否首次发布；不再注入资源包列表（普通资源包，用户自行排序/开关）。
+     * 内容未变则跳过写盘；返回落盘路径、是否首次发布、内容是否变化。
      */
     private static Published publishToResourcepacks(Path cachedZip, Path gameDir, String mcGroup) throws IOException {
         Path dir = gameDir.resolve("resourcepacks");
@@ -204,6 +308,10 @@ public class J20UpdateMod {
         String name = "j20-lang-" + mcGroup + "-" + LOADER + ".zip";
         Path target = dir.resolve(name);
         boolean firstPublish = !Files.exists(target);
+        boolean changed = firstPublish || Files.mismatch(cachedZip, target) != -1L;
+        if (!changed) {
+            return new Published(target, false, false);
+        }
         Path tmp = dir.resolve(name + ".j20tmp");
         Files.copy(cachedZip, tmp, StandardCopyOption.REPLACE_EXISTING);
         try {
@@ -211,6 +319,7 @@ public class J20UpdateMod {
         } catch (AtomicMoveNotSupportedException e) {
             Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING);
         }
-        return new Published(target, firstPublish);
+        return new Published(target, firstPublish, true);
     }
+
 }

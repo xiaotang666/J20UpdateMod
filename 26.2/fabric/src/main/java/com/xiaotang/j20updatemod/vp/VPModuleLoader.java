@@ -41,9 +41,9 @@ public final class VPModuleLoader {
     private static final String VP_CONFIG_RELPATH = "config/vaultpatcher_asm/config.json";
 
     /** 部署结果。 */
-    public record Result(boolean enabled, boolean deployed, boolean vpMissing, boolean emptyPackage, List<String> moduleNames) {
+    public record Result(boolean enabled, boolean deployed, boolean vpMissing, boolean emptyPackage, boolean changed, List<String> moduleNames) {
         public static Result skipped() {
-            return new Result(false, false, false, false, List.of());
+            return new Result(false, false, false, false, false, List.of());
         }
     }
 
@@ -67,7 +67,7 @@ public final class VPModuleLoader {
         Manifest.VpPackEntry vpPack = manifest.findVpPack(mcGroup);
         if (vpPack == null) {
             LOGGER.warn("[j20] manifest 中没有 {} 的 vp_packages 条目，跳过 VP 模块部署", mcGroup);
-            return new Result(true, false, !vpLoaded, false, List.of());
+            return new Result(true, false, !vpLoaded, false, false, List.of());
         }
 
         Path zip;
@@ -75,21 +75,22 @@ public final class VPModuleLoader {
             zip = PackDownloader.ensureVpModules(cacheDir, vpPack, version, ordered).file();
         } catch (IOException e) {
             LOGGER.warn("[j20] VP 模块包下载失败: {}", e.toString());
-            return new Result(true, false, !vpLoaded, false, List.of());
+            return new Result(true, false, !vpLoaded, false, false, List.of());
         }
 
         List<String> modules;
+        List<String> changedNames = new ArrayList<>();
         try {
-            modules = extractModules(zip, gameDir);
+            modules = extractModules(zip, gameDir, changedNames);
         } catch (IOException e) {
             LOGGER.warn("[j20] VP 模块包解压失败 {}: {}", zip, e.toString());
-            return new Result(true, false, !vpLoaded, false, List.of());
+            return new Result(true, false, !vpLoaded, false, false, List.of());
         }
 
         if (modules.isEmpty()) {
             // 汉化库当前的 VP 包为空包（尚无真实补丁），属正常情况
             LOGGER.info("[j20] VP 模块包 {} 无模块条目（空包），跳过部署", zip.getFileName());
-            return new Result(true, false, !vpLoaded, true, List.of());
+            return new Result(true, false, !vpLoaded, true, false, List.of());
         }
 
         LOGGER.info("[j20] 已部署 {} 个 VP 模块到 {}: {}", modules.size(), gameDir.resolve("vaultpatcher/modules"), modules);
@@ -98,11 +99,11 @@ public final class VPModuleLoader {
         } else {
             LOGGER.warn("[j20] 未检测到 Vault Patcher（vaultpatcher_asm），模块文件已就位，安装 VP 后生效");
         }
-        return new Result(true, true, !vpLoaded, false, modules);
+        return new Result(true, true, !vpLoaded, false, !changedNames.isEmpty(), modules);
     }
 
     /** 把包内 vaultpatcher/modules/ 下的文件解压到游戏根目录。返回模块名（不含 .json）。 */
-    static List<String> extractModules(Path zip, Path gameDir) throws IOException {
+    static List<String> extractModules(Path zip, Path gameDir, List<String> changedOut) throws IOException {
         List<String> modules = new ArrayList<>();
         try (ZipFile zf = new ZipFile(zip.toFile())) {
             Enumeration<? extends ZipEntry> entries = zf.entries();
@@ -119,9 +120,13 @@ public final class VPModuleLoader {
                 }
                 Path dest = gameDir.resolve("vaultpatcher").resolve("modules").resolve(fileName);
                 Files.createDirectories(dest.getParent());
-                try (InputStream in = zf.getInputStream(entry);
-                     OutputStream out = Files.newOutputStream(dest)) {
-                    in.transferTo(out);
+                byte[] data = zf.getInputStream(entry).readAllBytes();
+                boolean same = Files.exists(dest) && java.util.Arrays.equals(Files.readAllBytes(dest), data);
+                if (!same) {
+                    Files.write(dest, data);
+                    if (fileName.endsWith(".json")) {
+                        changedOut.add(fileName.substring(0, fileName.length() - ".json".length()));
+                    }
                 }
                 if (fileName.endsWith(".json")) {
                     modules.add(fileName.substring(0, fileName.length() - ".json".length()));
