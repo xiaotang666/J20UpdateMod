@@ -106,8 +106,10 @@ public class ChainTest {
         // ---- 6. VP：真实产物部署（汉化库现含真实模块） ----
         VPModuleLoader.Result vp1 = VPModuleLoader.deployIfNeeded(true, true, gameDir, cacheDir,
                 manifest, "1.21", manifest.latest.version, cnFirst);
-        check("VP 真实包部署（汉化库当前产物）", vp1.enabled() && vp1.deployed() && !vp1.moduleNames().isEmpty(),
-                vp1.toString());
+        // 线上产物随汉化库发版漂移：有模块则断言部署，空包则断言容错（两者都是合法状态）
+        boolean realOk = vp1.enabled()
+                && ((vp1.deployed() && !vp1.moduleNames().isEmpty()) || vp1.emptyPackage());
+        check("VP 真实链路（有模块则部署 / 空包则容错）", realOk, vp1.toString());
         VPModuleLoader.Result vpOff = VPModuleLoader.deployIfNeeded(false, true, gameDir, cacheDir,
                 manifest, "1.21", manifest.latest.version, cnFirst);
         check("enableHardcodedPatch=false 完全跳过", !vpOff.enabled() && !vpOff.deployed(), vpOff.toString());
@@ -165,13 +167,19 @@ public class ChainTest {
         fakeManifest.latest.vpPackages = List.of(fakeVp);
         fakeManifest.latest.packages = manifest.latest.packages;
 
+        Path staleCache = gameDir2.resolve("vaultpatcher/cache");
+        Files.createDirectories(staleCache);
+        Files.writeString(staleCache.resolve("stale.class"), "stale");
         VPModuleLoader.Result vp2 = VPModuleLoader.deployIfNeeded(true, true, gameDir2, cacheDir,
                 fakeManifest, "1.21", fakeManifest.latest.version, cnFirst);
         check("VP 模块解压部署", vp2.deployed() && vp2.moduleNames().contains("testmod"), vp2.moduleNames().toString());
         check("VP 首次部署有变更（changed=true）", vp2.changed(), vp2.toString());
+        check("模块变更后清空 vaultpatcher/cache/", !Files.exists(staleCache.resolve("stale.class")), "");
+        Files.writeString(staleCache.resolve("keep.class"), "keep");
         VPModuleLoader.Result vp2b = VPModuleLoader.deployIfNeeded(true, true, gameDir2, cacheDir,
                 fakeManifest, "1.21", fakeManifest.latest.version, cnFirst);
         check("VP 重复部署幂等（changed=false）", !vp2b.changed(), vp2b.toString());
+        check("模块未变更不动 vaultpatcher/cache/", Files.exists(staleCache.resolve("keep.class")), "");
         check("模块文件就位于 .minecraft/vaultpatcher/modules/",
                 Files.exists(gameDir2.resolve("vaultpatcher/modules/testmod.json")), "");
         check("路径穿越条目被拦截", !Files.exists(gameDir2.resolve("escape.txt"))

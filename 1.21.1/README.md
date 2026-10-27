@@ -4,9 +4,9 @@
 
 | 加载器 | 文件 |
 | --- | --- |
-| NeoForge | `j20UpdateMod-1.21.1-neoforge-0.2.0.jar` |
-| Forge | `j20UpdateMod-1.21.1-forge-0.2.0.jar` |
-| Fabric | `j20UpdateMod-1.21.1-fabric-0.2.0.jar` |
+| NeoForge | `j20UpdateMod-1.21.1-neoforge-0.2.1.jar` |
+| Forge | `j20UpdateMod-1.21.1-forge-0.2.1.jar` |
+| Fabric | `j20UpdateMod-1.21.1-fabric-0.2.1.jar` |
 
 ## 安装
 

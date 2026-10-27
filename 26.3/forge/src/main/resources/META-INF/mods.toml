@@ -4,7 +4,7 @@ license="AGPL-3.0"
 
 [[mods]]
 modId="j20updatemod"
-version="0.2.0"
+version="0.2.1"
 displayName="j20UpdateMod"
 authors="小坣"
 clientSideOnly=true

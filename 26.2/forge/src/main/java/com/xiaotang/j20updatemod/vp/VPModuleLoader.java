@@ -94,12 +94,39 @@ public final class VPModuleLoader {
         }
 
         LOGGER.info("[j20] 已部署 {} 个 VP 模块到 {}: {}", modules.size(), gameDir.resolve("vaultpatcher/modules"), modules);
+        if (!changedNames.isEmpty()) {
+            clearVpCache(gameDir);
+        }
         if (vpLoaded) {
             registerModulesInVpConfig(gameDir, modules);
         } else {
-            LOGGER.warn("[j20] 未检测到 Vault Patcher（vaultpatcher_asm），模块文件已就位，安装 VP 后生效");
+            LOGGER.warn("[j20] 未检测到 Vault Patcher，模块文件已就位，安装 VP 后生效");
         }
         return new Result(true, true, !vpLoaded, false, !changedNames.isEmpty(), modules);
+    }
+
+    /**
+     * VP 模块有变更时清空 vaultpatcher/cache/（VP 的类转换缓存，存旧翻译的转换产物）。
+     * 按模块内容（md5 级）变化触发；内容未变不动，让 VP 复用缓存。
+     */
+    private static void clearVpCache(Path gameDir) {
+        Path cache = gameDir.resolve("vaultpatcher").resolve("cache");
+        if (!Files.isDirectory(cache)) {
+            return;
+        }
+        try (java.util.stream.Stream<Path> walk = Files.walk(cache)) {
+            walk.sorted(java.util.Comparator.reverseOrder()).forEach(p -> {
+                if (!p.equals(cache)) {
+                    try {
+                        Files.delete(p);
+                    } catch (IOException ignored) {
+                    }
+                }
+            });
+            LOGGER.info("[j20] VP 模块有变更，已清空 vaultpatcher/cache/（类转换缓存），下次启动按新模块重新转换");
+        } catch (Throwable t) {
+            LOGGER.warn("[j20] 清空 vaultpatcher/cache/ 失败: {}", t.toString());
+        }
     }
 
     /** 把包内 vaultpatcher/modules/ 下的文件解压到游戏根目录。返回模块名（不含 .json）。 */
