@@ -19,8 +19,8 @@ import java.util.List;
 public final class PackDownloader {
 
     private static final Logger LOGGER = LogManager.getLogger("j20UpdateMod");
-    private static final int DOWNLOAD_TIMEOUT_MS = 30_000;
-    private static final int MAX_RETRIES = 3;
+    private static final int DOWNLOAD_TIMEOUT_MS = 300_000; // 慢链路大包（i18n 全量基底 2MB 级），配合断点续传
+    private static final int MAX_RETRIES = 5;
 
     /** 下载结果：缓存文件路径、版本号、是否命中已缓存。 */
     public record Downloaded(Path file, String version, boolean fromCache) {
@@ -91,7 +91,8 @@ public final class PackDownloader {
             LOGGER.warn("[j20] 源 {} 连续 {} 次失败，切换下一个源", source.name, MAX_RETRIES);
         }
 
-        Files.deleteIfExists(part);
+        LOGGER.warn("[j20] {} 本次未完成，保留 .part（{} 字节）供下次启动续传", assetName,
+                Files.exists(part) ? Files.size(part) : 0L);
         throw new IOException("资源包 " + assetName + " 下载失败（所有源均不可用）"
                 + (lastError == null ? "" : ": " + lastError.getMessage()), lastError);
     }

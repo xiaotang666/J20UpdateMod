@@ -66,7 +66,7 @@ public class ChainTest {
         String url = MirrorSelector.assetUrl(cnFirst.get(0), "2026.10.03-004", "pack-1.21-neoforge.zip",
                 "https://github.com/x/y/releases/download/v/pack-1.21-neoforge.zip");
         check("asset_url_template 占位符展开",
-                url.contains("pack-1.21-neoforge.zip") && url.startsWith("https://ghproxy.net/https://github.com/"), url);
+                url.contains("pack-1.21-neoforge.zip") && url.contains("github.com/x/y/releases/download/v/pack-1.21-neoforge.zip"), url);
 
         // ---- 2. manifest 获取 + 冻结接口校验 ----
         Manifest manifest = ManifestFetcher.fetch(cacheDir, cnFirst, "1.21", "neoforge");
@@ -76,8 +76,11 @@ public class ChainTest {
         check("清单缓存写入", Files.exists(cacheDir.resolve("manifest.json")), cacheDir.resolve("manifest.json").toString());
 
         Manifest.PackEntry pack = manifest.findPack("1.21", "neoforge");
-        check("按版本组/加载器定位资源包", pack != null && "pack-1.21-neoforge.zip".equals(pack.assetName),
+        check("按版本组/加载器定位资源包（fo 共用）", pack != null && "pack-1.21-forge.zip".equals(pack.assetName),
                 pack == null ? "未找到" : pack.assetName + " md5=" + pack.md5);
+        Manifest.PackEntry faPack = manifest.findPack("1.21", "fabric");
+        check("fabric 资产独立", faPack != null && "pack-1.21-fabric.zip".equals(faPack.assetName),
+                faPack == null ? "未找到" : faPack.assetName);
         Manifest.VpPackEntry vpPack = manifest.findVpPack("1.21");
         check("vp_packages 为可选字段且可解析", vpPack != null, vpPack == null ? "null" : vpPack.assetName);
         check("校验器拒绝未知版本组", manifest.validate("9.9", "neoforge") != null, manifest.validate("9.9", "neoforge"));
@@ -102,6 +105,16 @@ public class ChainTest {
         String md5After = MD5Util.fileMd5Hex(dl3.file());
         check("损坏缓存被检测并重新下载", MD5Util.matches(pack.md5, md5After), "修复后 md5=" + md5After);
         check("无 .part 残留", !Files.exists(cacheDir.resolve(pack.assetName + ".part")), "");
+
+        // ---- 5a. 断点续传：.part 残留前缀 → 跨请求续传完成（慢链路大包关键路径）----
+        byte[] full = Files.readAllBytes(packZip);
+        Files.delete(packZip);
+        Path partFile = cacheDir.resolve(pack.assetName + ".part");
+        Files.write(partFile, java.util.Arrays.copyOf(full, Math.min(full.length, 32_768)));
+        PackDownloader.Downloaded dlR = PackDownloader.ensureResourcePack(cacheDir, pack, manifest.latest.version, cnFirst);
+        check(".part 断点续传完成且 MD5 通过", MD5Util.matches(pack.md5, MD5Util.fileMd5Hex(dlR.file())),
+                "续传后大小=" + Files.size(dlR.file()));
+        check("续传完成后 .part 已清", !Files.exists(partFile), "");
 
         // ---- 5b. 清单版本防护：缓存新于在线来源 → 用缓存（防 jsDelivr 等 CDN 旧清单顶掉新缓存）----
         Path mf = cacheDir.resolve("manifest.json");

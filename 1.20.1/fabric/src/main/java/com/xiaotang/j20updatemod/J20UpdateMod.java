@@ -36,7 +36,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class J20UpdateMod implements ClientModInitializer {
 
     public static final String MODID = "j20updatemod";
-    public static final String VERSION = "0.2.3";
+    public static final String VERSION = "0.2.5";
     public static final String LOADER = "fabric";
 
     private static final Logger LOGGER = LogManager.getLogger("j20UpdateMod");
@@ -161,6 +161,18 @@ public class J20UpdateMod implements ClientModInitializer {
         }
     }
 
+    /** 回退用：在缓存目录找本组任意 pack-*.zip（资产名可能 fo 共用，不含本 loader 名）。 */
+    private static Path findCachedPack(Path cacheDir, String mcGroup) {
+        try (java.util.stream.Stream<Path> s = Files.list(cacheDir)) {
+            return s.filter(p -> {
+                String n = p.getFileName().toString();
+                return n.startsWith("pack-" + mcGroup + "-") && n.endsWith(".zip");
+            }).findFirst().orElse(null);
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
     /** 更新流程主体（后台线程）。 */
     private static void runUpdate() {
         Path gameDir = null;
@@ -213,7 +225,7 @@ public class J20UpdateMod implements ClientModInitializer {
         } catch (Throwable t) {
             LOGGER.error("[j20] 汉化更新流程失败，本次启动回退使用已有缓存", t);
             if (gameDir != null && mcGroup != null) {
-                Path cached = gameDir.resolve("j20update-cache").resolve("pack-" + mcGroup + "-" + LOADER + ".zip");
+                Path cached = findCachedPack(gameDir.resolve("j20update-cache"), mcGroup);
                 if (Files.exists(cached)) {
                     outcome = new UpdateOutcome(cached, "cache", null, null);
                 }
