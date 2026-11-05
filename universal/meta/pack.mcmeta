@@ -1,0 +1,18 @@
+{
+  "pack": {
+    "pack_format": 15,
+    "supported_formats": [
+      15,
+      999
+    ],
+    "min_format": [
+      15,
+      0
+    ],
+    "max_format": [
+      999,
+      9
+    ],
+    "description": "j20UpdateMod resources"
+  }
+}

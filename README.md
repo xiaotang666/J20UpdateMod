@@ -1,58 +1,45 @@
-# j20UpdateMod（J20模组汉化）
+# j20UpdateMod（J20模组汉化自动更新）
 
-![AGPL-3.0 license](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)
-
-Minecraft 模组汉化自动更新模组。安装后启动游戏即自动下载并应用最新汉化资源包，无需手动更新。
-
-## 功能特性
-
-- **自动更新**：启动时从 [J20-Mcmodlanguage-Package](https://github.com/xiaotang666/J20-Mcmodlanguage-Package) 获取最新汉化资源包，MD5 校验后自动注入
-- **强制置顶**：汉化资源包自动注入到资源包列表最顶部，不被其他资源包覆盖
-- **国内加速**：游戏语言为简体中文时默认走国内镜像源，失败自动回退 GitHub；非中文环境优先 GitHub
-- **断点续传**：下载中断可续传，校验失败自动重试（每源最多 3 次），全源失败回退本地缓存
-- **硬编码补丁（默认开启）**：自动部署 Vault Patcher 模块，覆盖语言文件之外的硬编码文本（可在配置中关闭）
+自动下载并应用「J20 模组汉化资源包」的 Minecraft 客户端模组：启动时自动获取最新汉化资源包（MD5 校验），
+发布到 `resourcepacks/` 并自动勾选；可选部署 Vault Patcher 硬编码补丁。
 
 ## 下载
 
-按你的 Minecraft 版本与 Mod 加载器选择对应 JAR，在 [Releases](https://github.com/xiaotang666/J20UpdateMod/releases) 页面下载：
+- [Releases](https://github.com/xiaotang666/J20UpdateMod/releases) 下载 **`j20UpdateMod-1.0.0.jar`**
 
-| Minecraft 版本 | Forge | NeoForge | Fabric |
-| --- | --- | --- | --- |
-| 1.20.x | `j20UpdateMod-1.20.1-forge-0.2.3.jar` | `j20UpdateMod-1.20.1-neoforge-0.2.3.jar` | `j20UpdateMod-1.20.1-fabric-0.2.3.jar` |
-| 1.21.x | `j20UpdateMod-1.21.1-forge-0.2.3.jar` | `j20UpdateMod-1.21.1-neoforge-0.2.3.jar` | `j20UpdateMod-1.21.1-fabric-0.2.3.jar` |
-| 26.1.x | `j20UpdateMod-26.1.2-forge-0.2.3.jar` | `j20UpdateMod-26.1.2-neoforge-0.2.3.jar` | `j20UpdateMod-26.1.2-fabric-0.2.3.jar` |
-| 26.2 | `j20UpdateMod-26.2-forge-0.2.3.jar` | `j20UpdateMod-26.2-neoforge-0.2.3.jar` | `j20UpdateMod-26.2-fabric-0.2.3.jar` |
-| 26.3 | `j20UpdateMod-26.3-forge-0.2.3.jar` | `j20UpdateMod-26.3-neoforge-0.2.3.jar` | `j20UpdateMod-26.3-fabric-0.2.3.jar` |
+## 支持范围
 
-汉化资源包按版本组共享（如 1.20.x 系列共用同一份汉化内容），模组 JAR 按 MC 具体版本与加载器区分。
+| 项目 | 支持 |
+| --- | --- |
+| Minecraft | 1.20.1 ~ 26.3+（未来版本自动适配） |
+| Mod 加载器 | MinecraftForge / NeoForge / Fabric |
+| Java | 17+ |
 
-## 安装
+**一个 jar 通吃全部版本与加载器**：运行时自动识别游戏版本与加载器，不需要按版本挑文件。
 
-1. 下载上表对应的模组 JAR
-2. 放入 `.minecraft/mods/` 文件夹
-3. 启动游戏即可，汉化自动下载并生效
+## 使用
+
+1. 下载 `j20UpdateMod-{版本}.jar` 放入 `mods` 文件夹（Fabric 无需 fabric-api）
+2. 启动游戏：模组自动下载最新汉化资源包到 `resourcepacks/j20-lang-{版本组}-{加载器}.zip`，
+   并自动勾选（追加到已选列表末尾、不抢优先级，可手动调整或取消）
+3. **重启一次游戏后汉化生效**（资源包勾选在下次启动加载）；提示写入 `j20update-cache/notice.txt`
+4. 可选：安装 [Vault Patcher](https://github.com/3093FengMing/VaultPatcher) 并在配置中开启硬编码补丁，
+   覆盖语言文件无法处理的硬编码文本
 
 ## 配置
 
-配置文件位于 `.minecraft/config/j20update.json`：
+首次启动在 `config/j20update.json` 生成带说明的配置（硬编码补丁开关、VP 安装提醒开关）。
 
-| 字段 | 类型 | 默认值 | 说明 |
-| --- | --- | --- | --- |
-| `enableHardcodedPatch` | boolean | `true` | 是否启用硬编码补丁（Vault Patcher 模块自动部署） |
-| `showVPInstallReminder` | boolean | `true` | 启用补丁但未安装 Vault Patcher 时是否提示 |
+## 汉化资源包
 
-缓存目录：`.minecraft/j20update-cache/`（存放资源包与版本清单缓存，可随时删除，删除后重新下载）。
+由 [J20-Mcmodlanguage-Package](https://github.com/xiaotang666/J20-Mcmodlanguage-Package) 构建发布，
+翻译源文件、术语库与构建流程见汉化库仓库。
 
-硬编码补丁默认开启，需另行安装 [Vault Patcher](https://www.mcmod.cn/class/8765.html) 模组才会实际生效；未安装时游戏内会提示安装。
+## 致谢
 
-## 常见问题
+- [CFPAOrg / I18nUpdateMod3](https://github.com/CFPAOrg/I18nUpdateMod3) —— 自动汉化更新模组的架构参考
+- [Vault Patcher](https://github.com/3093FengMing/VaultPatcher) —— 硬编码文本汉化
 
-- **没生效？** 确认 JAR 在 `mods/` 内、游戏语言为简体中文，并查看 `logs/latest.log` 中 `[j20]` 开头的日志
-- **下载慢/失败？** 模组会自动切换镜像源并回退缓存，网络恢复后重启游戏即可更新到最新汉化
-- **汉化内容有误/缺失？** 请到 [汉化库仓库](https://github.com/xiaotang666/J20-Mcmodlanguage-Package) 反馈
+## 协议
 
-## 协议与致谢
-
-- 本模组遵循 **AGPL-3.0** 协议
-- 汉化内容来自 [J20-Mcmodlanguage-Package](https://github.com/xiaotang666/J20-Mcmodlanguage-Package)（基于 [CFPAOrg/Minecraft-Mod-Language-Package](https://github.com/CFPAOrg/Minecraft-Mod-Language-Package) 改编）
-- 自动更新思路参考 [I18nUpdateMod3](https://github.com/CFPAOrg/I18nUpdateMod3)
+[AGPL-3.0](LICENSE)。源码随 Release 以 `j20UpdateMod-{版本}-source.zip` 附件分发。

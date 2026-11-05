@@ -2,6 +2,16 @@
 
 本项目遵循语义化迭代版本号。
 
+## 1.0.0 — 2026-11-05
+
+### 重大变更（架构）
+
+- **15 个 jar 收敛为 1 个通用 jar**（`j20UpdateMod-1.0.0.jar`，47.8KB）：通吃 Minecraft 1.20.1–26.3+ × Forge / NeoForge / Fabric，运行时自动识别游戏版本与加载器
+- **采用 i18n 式单套类架构**：全 mod 零 MC 编译期绑定（字节码级验证），MC/加载器差异全走反射候选链（ModList 新老 API 分叉、FMLLoader 兜底），未来版本接口形状不变即免适配；纯 Java 核心（下载/清单/VP/发布）本就跨版本
+- 三加载器元数据同 jar 共存（`mods.toml` / `neoforge.mods.toml` / `fabric.mod.json`），各自加载器各读各的（Neo 新老均只解析 `neoforge.mods.toml`，经反汇编实证）
+- **进服聊天提醒降级**：改为日志 + 游戏目录 `j20update-cache/notice.txt`（单套类无法挂各版本事件系统）；重启/VP 安装提示内容不变
+- Fabric 构建**不再需要 fabric-api**（进服事件移除）
+
 ## 0.2.5 — 2026-11-04
 
 ### 修复
