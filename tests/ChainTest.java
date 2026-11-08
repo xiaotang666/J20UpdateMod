@@ -1,3 +1,4 @@
+import com.xiaotang.j20updatemod.J20Core;
 import com.xiaotang.j20updatemod.download.Manifest;
 import com.xiaotang.j20updatemod.download.ManifestFetcher;
 import com.xiaotang.j20updatemod.download.MirrorSelector;
@@ -84,6 +85,17 @@ public class ChainTest {
         Manifest.VpPackEntry vpPack = manifest.findVpPack("1.21");
         check("vp_packages 为可选字段且可解析", vpPack != null, vpPack == null ? "null" : vpPack.assetName);
         check("校验器拒绝未知版本组", manifest.validate("9.9", "neoforge") != null, manifest.validate("9.9", "neoforge"));
+
+        // ---- 2b. J20Core.versionGroup：MC 版本 → manifest mc_version 键（回归：曾误用 1.21.1 当组键）----
+        check("版本组映射 1.21.4→1.21", "1.21".equals(J20Core.versionGroup("1.21.4")), J20Core.versionGroup("1.21.4"));
+        check("版本组映射 1.21.1→1.21", "1.21".equals(J20Core.versionGroup("1.21.1")), J20Core.versionGroup("1.21.1"));
+        check("版本组映射 1.20.1→1.20", "1.20".equals(J20Core.versionGroup("1.20.1")), J20Core.versionGroup("1.20.1"));
+        check("版本组映射 26.1.2→26.1", "26.1".equals(J20Core.versionGroup("26.1.2")), J20Core.versionGroup("26.1.2"));
+        check("版本组映射 26.2→26.2", "26.2".equals(J20Core.versionGroup("26.2")), J20Core.versionGroup("26.2"));
+        for (String v : new String[]{"1.21.4", "1.20.1", "26.1.2", "26.2", "26.3"}) {
+            Manifest.PackEntry mapped = manifest.findPack(J20Core.versionGroup(v), "neoforge");
+            check("映射键可命中清单: " + v, mapped != null, String.valueOf(mapped));
+        }
 
         // ---- 3. 资源包下载 + MD5 校验 ----
         PackDownloader.Downloaded dl = PackDownloader.ensureResourcePack(cacheDir, pack, manifest.latest.version, cnFirst);
