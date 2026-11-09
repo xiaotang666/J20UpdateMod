@@ -139,6 +139,39 @@ public class ChainTest {
                 newerCache.latest.version);
         Files.writeString(mf, originalMf, StandardCharsets.UTF_8);
 
+        // ---- 5c. 发布替换：旧包被 zipfs 占用（游戏加载中）也要能替换（回归：ATOMIC_MOVE 被拒后未降级）----
+        Path rpDir = gameDir.resolve("resourcepacks");
+        Files.createDirectories(rpDir);
+        Path held = rpDir.resolve("j20-lang-26.2-neoforge.zip");
+        try (ZipOutputStream zo = new ZipOutputStream(Files.newOutputStream(held))) {
+            zo.putNextEntry(new ZipEntry("a.txt"));
+            zo.write("old-content".getBytes(StandardCharsets.UTF_8));
+            zo.closeEntry();
+        }
+        Path newPack = cacheDir.resolve("pack-locktest.zip");
+        try (ZipOutputStream zo = new ZipOutputStream(Files.newOutputStream(newPack))) {
+            zo.putNextEntry(new ZipEntry("a.txt"));
+            zo.write("new-content-not-same-size!!".getBytes(StandardCharsets.UTF_8));
+            zo.closeEntry();
+        }
+        java.nio.file.FileSystem heldFs = java.nio.file.FileSystems.newFileSystem(held, java.util.Collections.emptyMap());
+        try {
+            Class<?> core = Class.forName("com.xiaotang.j20updatemod.J20Core");
+            java.lang.reflect.Field loaderField = core.getDeclaredField("LOADER");
+            loaderField.setAccessible(true);
+            loaderField.set(null, "neoforge");
+            java.lang.reflect.Method pub = core.getDeclaredMethod("publishToResourcepacks", Path.class, Path.class, String.class);
+            pub.setAccessible(true);
+            Object result = pub.invoke(null, newPack, gameDir, "26.2");
+            check("占用中旧包仍被替换（降级普通替换）", Files.size(held) > 0 && !result.toString().contains("changed=false"),
+                    result.toString() + " size=" + Files.size(held));
+            check("无 .j20tmp 残留", !Files.exists(rpDir.resolve("j20-lang-26.2-neoforge.zip.j20tmp")), "");
+        } finally {
+            heldFs.close();
+            Files.deleteIfExists(held);
+            Files.deleteIfExists(newPack);
+        }
+
         // ---- 6. VP：真实产物部署（汉化库现含真实模块） ----
         VPModuleLoader.Result vp1 = VPModuleLoader.deployIfNeeded(true, true, gameDir, cacheDir,
                 manifest, "1.21", manifest.latest.version, cnFirst);

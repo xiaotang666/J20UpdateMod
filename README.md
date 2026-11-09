@@ -5,7 +5,7 @@
 
 ## 下载
 
-- [Releases](https://github.com/xiaotang666/J20UpdateMod/releases) 下载 **`j20UpdateMod-1.0.1.jar`**
+- [Releases](https://github.com/xiaotang666/J20UpdateMod/releases) 下载 **`j20UpdateMod-1.0.2.jar`**
 
 ## 支持范围
 

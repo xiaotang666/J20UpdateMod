@@ -36,7 +36,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class J20Core {
 
     public static final String MODID = "j20updatemod";
-    public static final String VERSION = "1.0.1";
+    public static final String VERSION = "1.0.2";
 
     private static final Logger LOGGER = LogManager.getLogger("j20UpdateMod");
 
@@ -201,9 +201,16 @@ public final class J20Core {
             PackDownloader.Downloaded downloaded =
                     PackDownloader.ensureResourcePack(cacheDir, pack, manifest.latest.version, ordered);
 
-            Published published = publishToResourcepacks(downloaded.file(), gameDir, mcGroup);
-            LOGGER.info("[j20] 资源包已发布到 resourcepacks 文件夹: {}", published.file().getFileName());
-            OptionsSelector.autoSelectOnce(gameDir, "file/" + published.file().getFileName(), published.firstPublish());
+            Published published;
+            try {
+                published = publishToResourcepacks(downloaded.file(), gameDir, mcGroup);
+                LOGGER.info("[j20] 资源包已发布到 resourcepacks 文件夹: {}", published.file().getFileName());
+                OptionsSelector.autoSelectOnce(gameDir, "file/" + published.file().getFileName(), published.firstPublish());
+            } catch (IOException e) {
+                LOGGER.error("[j20] 汉化包替换失败（新包已缓存，下次启动自动重试）: {}", e.toString());
+                writeNotice(gameDir, "汉化资源包替换失败（文件被占用）：新包已缓存，下次启动游戏自动替换生效。");
+                published = new Published(gameDir.resolve("resourcepacks").resolve("j20-lang-" + mcGroup + "-" + LOADER + ".zip"), false, false);
+            }
 
             boolean vpLoaded = isVpLoaded();
             VPModuleLoader.Result vpResult = VPModuleLoader.deployIfNeeded(
@@ -382,18 +389,53 @@ public final class J20Core {
         Files.createDirectories(dir);
         String name = "j20-lang-" + mcGroup + "-" + LOADER + ".zip";
         Path target = dir.resolve(name);
+
+        // 清理其他命名时代/其他组的旧 j20-lang-* 残留（含失败留下的 .j20tmp）
+        try (java.util.stream.Stream<Path> s = Files.list(dir)) {
+            s.filter(p -> {
+                String n = p.getFileName().toString();
+                return n.startsWith("j20-lang-") && !n.equals(name);
+            }).forEach(p -> {
+                try {
+                    Files.deleteIfExists(p);
+                    LOGGER.info("[j20] 清理旧汉化包: {}", p.getFileName());
+                } catch (IOException e) {
+                    LOGGER.warn("[j20] 旧汉化包清理失败 {}: {}", p.getFileName(), e.toString());
+                }
+            });
+        } catch (IOException ignored) {
+        }
+
         boolean firstPublish = !Files.exists(target);
         boolean changed = firstPublish || Files.mismatch(cachedZip, target) != -1L;
         if (!changed) {
             return new Published(target, false, false);
         }
         Path tmp = dir.resolve(name + ".j20tmp");
-        Files.copy(cachedZip, tmp, StandardCopyOption.REPLACE_EXISTING);
-        try {
-            Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-        } catch (AtomicMoveNotSupportedException e) {
-            Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING);
+        IOException lastErr = null;
+        for (int attempt = 1; attempt <= 5; attempt++) {
+            try {
+                Files.copy(cachedZip, tmp, StandardCopyOption.REPLACE_EXISTING);
+                try {
+                    Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+                } catch (AtomicMoveNotSupportedException | java.nio.file.AccessDeniedException fallback) {
+                    // 游戏正占用旧包（zipfs 打开）时 ATOMIC_MOVE 被系统拒绝；
+                    // 普通 REPLACE_EXISTING 不需独占，实测仍可成功
+                    Files.move(tmp, target, StandardCopyOption.REPLACE_EXISTING);
+                }
+                LOGGER.info("[j20] 已替换汉化包: {}（第 {} 次尝试）", name, attempt);
+                return new Published(target, firstPublish, true);
+            } catch (IOException e) {
+                lastErr = e;
+                LOGGER.warn("[j20] 替换 {} 第 {}/5 次失败（多为文件被占用）: {}", name, attempt, e.toString());
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
         }
-        return new Published(target, firstPublish, true);
+        throw lastErr == null ? new IOException("替换 " + name + " 失败") : lastErr;
     }
 }
