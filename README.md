@@ -5,7 +5,7 @@
 
 ## 下载
 
-- [Releases](https://github.com/xiaotang666/J20UpdateMod/releases) 下载 **`j20UpdateMod-1.0.2.jar`**
+- [Releases](https://github.com/xiaotang666/J20UpdateMod/releases) 下载 **`j20UpdateMod-1.0.4.jar`**
 
 ## 支持范围
 
@@ -34,6 +34,10 @@
 
 由 [J20-Mcmodlanguage-Package](https://github.com/xiaotang666/J20-Mcmodlanguage-Package) 构建发布，
 翻译源文件、术语库与构建流程见汉化库仓库。
+
+## 源代码
+
+完整源码在本仓库 [`universal/src/`](universal/src/)（含各加载器入口与测试）；每个 Release 页面底部另附 GitHub 自动生成的 Source code (zip / tar.gz) 包。Modrinth 等平台的"源代码"链接请直接指向本仓库。
 
 ## 致谢
 

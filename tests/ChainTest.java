@@ -183,6 +183,32 @@ public class ChainTest {
                 manifest, "1.21", manifest.latest.version, cnFirst);
         check("enableHardcodedPatch=false 完全跳过", !vpOff.enabled() && !vpOff.deployed(), vpOff.toString());
 
+        // ---- 6c. VP 检测零时机依赖（回归：早期时序误报"未检测到 VP"）----
+        Path modsDir = gameDir.resolve("mods");
+        Files.createDirectories(modsDir);
+        check("无 VP 时检测为假", !J20Core.isVpLoaded(gameDir), "");
+        Path vpJar = modsDir.resolve("[\u6d4b\u8bd5] vaultpatcher-all-9.9.9.jar");
+        Files.write(vpJar, new byte[]{0x50, 0x4B, 3, 4});
+        check("mods 目录 vaultpatcher 命名即检出（零时机）", J20Core.isVpLoaded(gameDir), vpJar.toString());
+        Files.delete(vpJar);
+        check("删除后恢复为假", !J20Core.isVpLoaded(gameDir), "");
+
+        // ---- 6d. 进服聊天提醒：无 MC 环境下静默降级（不抛错、立即完成）----
+        com.xiaotang.j20updatemod.util.ChatNotifier.notifyInGameAsync("测试提醒");
+        java.lang.reflect.Method trySend = com.xiaotang.j20updatemod.util.ChatNotifier.class
+                .getDeclaredMethod("trySend", String.class);
+        trySend.setAccessible(true);
+        check("聊天提醒无 MC 环境进入重试等待（不提前放弃）", Boolean.FALSE.equals(trySend.invoke(null, "t")), "");
+
+        // ---- 6e. notice.txt 累计写（回归：重启提示曾覆盖 VP 提示）----
+        java.lang.reflect.Method writeNotice = com.xiaotang.j20updatemod.J20Core.class
+                .getDeclaredMethod("writeNotice", Path.class, String.class);
+        writeNotice.setAccessible(true);
+        writeNotice.invoke(null, gameDir, "提示甲");
+        writeNotice.invoke(null, gameDir, "提示乙");
+        String noticeBody = Files.readString(gameDir.resolve("j20update-cache").resolve("notice.txt"), StandardCharsets.UTF_8);
+        check("两个提示共存不互相覆盖", noticeBody.contains("提示甲") && noticeBody.contains("提示乙"), noticeBody);
+
         // ---- 6b. VP：构造空包（无模块条目）→ 识别为空包且不报错 ----
         Path emptyZip = cacheDir.resolve("vp-empty-test.zip");
         try (ZipOutputStream zos = new ZipOutputStream(Files.newOutputStream(emptyZip))) {

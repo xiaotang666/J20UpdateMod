@@ -30,13 +30,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * 启动时后台执行：语言检测 → 镜像源选择 → manifest 获取 → 资源包下载/MD5 校验 → VP 模块部署；
  * 完成后发布到 resourcepacks/ 并自动勾选。入口由 universal dispatcher 调用 {@link #start}。
  *
- * <p>进服聊天提醒在单套类架构下无法挂事件（各版本事件系统形状不同），降级为：
- * 日志 + 游戏目录 j20update-cache/notice.txt（每次需要用户注意时覆盖写）。</p>
+ * <p>提醒三层输出：日志 + 游戏目录 j20update-cache/notice.txt（覆盖写）
+ * + 进服聊天栏提醒（{@link com.xiaotang.j20updatemod.util.ChatNotifier} 纯反射按形状探测，
+ * 等玩家进服后显示，环境不支持时静默降级）。</p>
  */
 public final class J20Core {
 
     public static final String MODID = "j20updatemod";
-    public static final String VERSION = "1.0.2";
+    public static final String VERSION = "1.0.4";
 
     private static final Logger LOGGER = LogManager.getLogger("j20UpdateMod");
 
@@ -162,8 +163,8 @@ public final class J20Core {
     }
 
     /** 本次启动 VP 是否已初始化（VaultPatcher.mcPath 在其 init 入口赋值；不确定时按已初始化处理）。 */
-    private static boolean isVpInitializedThisLaunch() {
-        if (!isVpLoaded()) {
+    private static boolean isVpInitializedThisLaunch(Path gameDir) {
+        if (!isVpLoaded(gameDir)) {
             return false;
         }
         try {
@@ -212,13 +213,24 @@ public final class J20Core {
                 published = new Published(gameDir.resolve("resourcepacks").resolve("j20-lang-" + mcGroup + "-" + LOADER + ".zip"), false, false);
             }
 
-            boolean vpLoaded = isVpLoaded();
+            boolean vpLoaded = isVpLoaded(gameDir);
             VPModuleLoader.Result vpResult = VPModuleLoader.deployIfNeeded(
                     config.enableHardcodedPatch, vpLoaded, gameDir, cacheDir,
                     manifest, mcGroup, manifest.latest.version, ordered);
 
             if (vpResult.vpMissing() && config.showVPInstallReminder) {
-                writeNotice(gameDir, VP_NOTICE_TEXT);
+                // 误报防护：VP 加载晚于本流程时稍候复检，确认确实不在才提示
+                if (!vpLoaded) {
+                    try {
+                        Thread.sleep(3000);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                    }
+                    vpLoaded = isVpLoaded(gameDir);
+                }
+                if (!vpLoaded) {
+                    writeNotice(gameDir, VP_NOTICE_TEXT);
+                }
             }
 
             outcome = new UpdateOutcome(downloaded.file(), manifest.latest.version, langCode, manifest.latest.version);
@@ -226,11 +238,11 @@ public final class J20Core {
             // 仅 fabric preLaunch 早期就位时本启动真生效
             boolean sameLaunchEffective = EARLY_DEPLOY_DONE.get() && "fabric".equals(LOADER);
             boolean needsRestart = (published.changed() && !sameLaunchEffective)
-                    || (vpResult.changed() && isVpInitializedThisLaunch());
+                    || (vpResult.changed() && isVpInitializedThisLaunch(gameDir));
             if (needsRestart) {
                 writeNotice(gameDir, RESTART_NOTICE_TEXT);
                 LOGGER.info("[j20] 汉化已部署，但本次启动不会完全生效（packChanged={} vpChanged={} vpInitialized={}），已提示重启",
-                        published.changed(), vpResult.changed(), isVpInitializedThisLaunch());
+                        published.changed(), vpResult.changed(), isVpInitializedThisLaunch(gameDir));
             }
             LOGGER.info("[j20] 汉化更新流程完成：资源包版本 {}{}", manifest.latest.version,
                     downloaded.fromCache() ? "（缓存）" : "（本次下载）");
@@ -248,13 +260,22 @@ public final class J20Core {
     }
 
     /** 需要用户注意时：日志 + 游戏目录提示文件（单套类架构下替代进服聊天提醒）。 */
+    private static final java.util.List<String> NOTICES = new java.util.ArrayList<>();
+
+    /** 写提醒：日志 + 进服聊天 + notice.txt（累计写，多个提示共存，不互相覆盖）。 */
     private static void writeNotice(Path gameDir, String text) {
         LOGGER.warn("[j20] {}", text);
+        com.xiaotang.j20updatemod.util.ChatNotifier.notifyInGameAsync(text);
         try {
-            Path notice = gameDir.resolve("j20update-cache").resolve("notice.txt");
-            Files.createDirectories(notice.getParent());
-            Files.writeString(notice, text + System.lineSeparator(), StandardCharsets.UTF_8,
-                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            synchronized (NOTICES) {
+                if (!NOTICES.contains(text)) {
+                    NOTICES.add(text);
+                }
+                Path notice = gameDir.resolve("j20update-cache").resolve("notice.txt");
+                Files.createDirectories(notice.getParent());
+                Files.writeString(notice, String.join(System.lineSeparator(), NOTICES) + System.lineSeparator(),
+                        StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            }
         } catch (Throwable ignored) {
         }
     }
@@ -271,8 +292,18 @@ public final class J20Core {
         }
     }
 
-    /** 检测 Vault Patcher 是否已安装（纯反射：ModList 链 + VP 类直查兜底）。 */
-    private static boolean isVpLoaded() {
+    /**
+     * 检测 Vault Patcher 是否已安装（零时机依赖，任一信号命中即真）：
+     * 1) mods 目录文件名扫描（不依赖加载器状态）；2) 加载器 API（仅真短路，不因 false 提前返回）；
+     * 3) VP 类存在性（initialize=false：只查存在、不跑静态初始化——早期时序下 <clinit> 抛错曾导致误报）。
+     */
+    public static boolean isVpLoaded(Path gameDir) {
+        try (java.util.stream.Stream<Path> s = Files.list(gameDir.resolve("mods"))) {
+            if (s.anyMatch(p -> p.getFileName().toString().toLowerCase(java.util.Locale.ROOT).contains("vaultpatcher"))) {
+                return true;
+            }
+        } catch (Throwable ignored) {
+        }
         for (String ml : new String[]{"net.neoforged.fml.ModList", "net.minecraftforge.fml.ModList"}) {
             try {
                 Class<?> c = Class.forName(ml);
@@ -289,16 +320,24 @@ public final class J20Core {
                         }
                     }
                 } else {
-                    Object loaded = c.getMethod("isLoaded", String.class).invoke(list, "vaultpatcher");
-                    if (loaded instanceof Boolean b) {
-                        return b;
+                    try {
+                        Object loaded = c.getMethod("isLoaded", String.class).invoke(list, "vaultpatcher");
+                        if (Boolean.TRUE.equals(loaded)) {
+                            return true;
+                        }
+                    } catch (NoSuchMethodException ignored) {
+                    }
+                    Object opt = c.getMethod("getModContainerById", String.class).invoke(list, "vaultpatcher");
+                    Object cont = opt.getClass().getMethod("orElse", Object.class).invoke(opt, (Object) null);
+                    if (cont != null) {
+                        return true;
                     }
                 }
             } catch (Throwable ignored) {
             }
         }
         try {
-            Class.forName("me.fengming.vaultpatcher_asm.VaultPatcher");
+            Class.forName("me.fengming.vaultpatcher_asm.VaultPatcher", false, J20Core.class.getClassLoader());
             return true;
         } catch (Throwable ignored) {
             return false;
